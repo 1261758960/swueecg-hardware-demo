@@ -35,7 +35,7 @@
           style="margin-top: 20px; margin-bottom: 20px;"
         />
 
-        <!-- 【新增】采集信息回显面板 -->
+        <!-- 采集信息回显面板 -->
         <el-card v-if="hardwareInfo" class="result-card" shadow="never">
           <template #header>
             <div class="result-header">
@@ -45,6 +45,9 @@
           </template>
           
           <el-descriptions :column="1" border size="small">
+            <el-descriptions-item label="操作系统">
+              <el-tag>{{ currentOSName }}</el-tag>
+            </el-descriptions-item>
             <el-descriptions-item label="内网 IP">
               <el-tag type="info">{{ hardwareInfo.inner_ip || '未获取到' }}</el-tag>
             </el-descriptions-item>
@@ -80,18 +83,40 @@
     </el-card>
   </div>
 </template>
+
 <script setup>
 import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CircleCheck } from '@element-plus/icons-vue' // 引入图标
+import { CircleCheck } from '@element-plus/icons-vue'
 
 const isLoading = ref(false)
 const uploadProgress = ref(0)
-const hardwareInfo = ref(null) // 【新增】保存回显数据
+const hardwareInfo = ref(null)
 let isAlertShowing = false
 let isProcessing = false 
 
 const LOCAL_GO_URL = 'http://127.0.0.1:38080'
+
+// 【新增】识别当前操作系统
+const currentOS = ref('windows')
+const currentOSName = ref('Windows')
+
+const getOS = () => {
+  const userAgent = navigator.userAgent.toLowerCase()
+  const platform = navigator.platform.toLowerCase()
+  
+  if (platform.includes('mac') || userAgent.includes('mac')) {
+    currentOS.value = 'mac'
+    currentOSName.value = 'macOS'
+    return 'mac'
+  }
+  currentOS.value = 'windows'
+  currentOSName.value = 'Windows'
+  return 'windows'
+}
+
+// 初始化时识别系统
+getOS()
 
 const handleSubmitBid = async () => {
   if (isProcessing || isLoading.value) return
@@ -105,23 +130,31 @@ const handleSubmitBid = async () => {
   const pingSuccess = await checkLocalAppRunning()
 
   if (!pingSuccess) {
-    // 探活失败，直接弹窗并终止，不再往下走
     isLoading.value = false
     isProcessing = false
     
     if (!isAlertShowing) {
       isAlertShowing = true
+      
+      // 【修改】根据系统生成不同的提示语和下载链接
+      const isMac = currentOS.value === 'mac'
+      const downloadUrl = isMac ? '/安全助手_Mac版.zip' : '/安全助手_windows.exe'
+      const tipText = isMac 
+        ? '未检测到【安全助手】正在运行。请先下载 Mac 版安全助手并运行后（需在终端赋予执行权限），再递交投标文件。'
+        : '未检测到【安全助手】正在运行。请先下载并运行安全助手后，再递交投标文件。'
+
       ElMessageBox.alert(
-        '未检测到【安全助手】正在运行。请先下载并运行安全助手后，再递交投标文件。',
+        tipText,
         '环境检测失败',
         { confirmButtonText: '下载安全助手', type: 'warning', showClose: false }
       ).then(() => {
-        window.location.href = '/安全助手.exe'
+        // 引导用户下载对应系统的文件
+        window.location.href = downloadUrl
       }).catch(() => {}).finally(() => {
         isAlertShowing = false
       })
     }
-    return // 这里必须 return，阻断后续逻辑
+    return 
   }
 
   // 2. 探活成功，才进入 try-catch 进行采集
@@ -147,10 +180,9 @@ const handleSubmitBid = async () => {
 
   } catch (error) {
     console.error("采集过程异常:", error)
-    // 这里的报错才是真正的采集报错（比如网络断开等）
     ElMessage.error('硬件信息采集失败，请检查安全助手状态！')
     isLoading.value = false
-    isProcessing.value = false
+    isProcessing = false
   }
 }
 
@@ -172,10 +204,8 @@ const checkLocalAppRunning = async () => {
   }
 }
 
-// 在 script setup 里加一个方法
 const formatHash = (hash) => {
   if (!hash) return '未获取到';
-  // 只显示前 8 位和后 8 位，中间用 ... 代替
   return hash.substring(0, 8) + '...' + hash.substring(hash.length - 8);
 }
 
@@ -188,7 +218,6 @@ const simulateFileUpload = () => {
       clearInterval(timer)
       isLoading.value = false
       isProcessing = false 
-      // 提示上传成功，但不要清空 hardwareInfo，让用户能看到结果
       ElMessage.success('投标文件递交成功！') 
     }
   }, 300)
@@ -206,7 +235,7 @@ const simulateFileUpload = () => {
 }
 
 .box-card {
-  width: 700px; /* 稍微加宽一点，展示长 Hash 更好看 */
+  width: 700px;
 }
 
 .card-header {
@@ -224,7 +253,6 @@ const simulateFileUpload = () => {
   margin-top: 10px;
 }
 
-/* 新增回显面板样式 */
 .result-card {
   margin-top: 20px;
   background-color: #f8f9fa;
@@ -238,7 +266,7 @@ const simulateFileUpload = () => {
 
 .hash-text {
   font-family: monospace;
-  word-break: break-all; /* 保证长 Hash 能自动换行 */
+  word-break: break-all;
   color: #606266;
   font-size: 12px;
 }
