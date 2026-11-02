@@ -55,15 +55,15 @@
               <el-tag type="info">{{ hardwareInfo.outer_ip || '未获取到' }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="CPU 编号 (Hash)">
-              <span class="hash-text">{{ formatHash(hardwareInfo.cpu_id)}}</span>
+              <span class="hash-text">{{ (hardwareInfo.cpu_id)}}</span>
             </el-descriptions-item>
             <el-descriptions-item label="主板序列号 (Hash)">
-              <span class="hash-text">{{ formatHash(hardwareInfo.board_serial)}}</span>
+              <span class="hash-text">{{ (hardwareInfo.board_serial)}}</span>
             </el-descriptions-item>
             <el-descriptions-item label="MAC 地址 (Hash)">
               <div v-if="hardwareInfo.mac_addresses && hardwareInfo.mac_addresses.length > 0">
                 <div v-for="(mac, index) in hardwareInfo.mac_addresses" :key="index" class="hash-text">
-                  {{ formatHash(mac) }}
+                  {{ (mac) }}
                 </div>
               </div>
               <span v-else class="hash-text">未获取到</span>
@@ -71,7 +71,7 @@
             <el-descriptions-item label="硬盘序列号 (Hash)">
               <div v-if="hardwareInfo.disk_serials && hardwareInfo.disk_serials.length > 0">
                 <div v-for="(disk, index) in hardwareInfo.disk_serials" :key="index" class="hash-text">
-                  {{ formatHash(disk) }}
+                  {{ (disk) }}
                 </div>
               </div>
               <span v-else class="hash-text">未获取到</span>
